@@ -64,7 +64,7 @@ def spawn():
 
 def load(count):
     pick_up_coords = [0.644, 0.0, 0.273] 
-    drop_off_coords = [[0.02, -0.555, 0.596], [-0.055,-0.59, 0.55], [0.12, -0.60, 0.55]]
+    drop_off_coords = [[0.02, -0.57, 0.596], [0.02, -0.50, 0.596], [0.02, -0.43, 0.596]]
 
     arm.move_arm(*pick_up_coords)
     time.sleep(2)
@@ -131,7 +131,7 @@ def transfer(bin_id):
 
 def deposit():
     bot.activate_stepper_motor()
-    bot.rotate_hopper(50)
+    bot.rotate_hopper(55)
     time.sleep(2)
     bot.deactivate_stepper_motor()
 
@@ -159,7 +159,7 @@ def main():
     deposit() 
     return_home()
 
-# main()
+main()
 
 #---------------------------------------------------------------------------------
 # STUDENT CODE ENDS
