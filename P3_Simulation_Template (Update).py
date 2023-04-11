@@ -76,6 +76,24 @@ def load(count):
     time.sleep(2)
     arm.home()
 
+def spawn_n_load():
+    count = 0
+    weight = 0
+    main_container = spawn()
+    while True:
+        if count == 0:
+            load(count)
+        else:
+            if main_container[2] == new_container[2] and count < 3 and weight <=90:
+                load(count)
+            else:
+                break
+            
+        count += 1
+        new_container = spawn()
+    
+    return main_container
+
 def transfer(bin_id):  
     bot.activate_line_following_sensor() 
     bot.activate_color_sensor() 
@@ -113,15 +131,14 @@ def transfer(bin_id):
 
 def deposit():
     bot.activate_stepper_motor()
-    bot.rotate_hopper(60)
+    bot.rotate_hopper(50)
     time.sleep(2)
     bot.deactivate_stepper_motor()
 
 def return_home():
     bot.activate_line_following_sensor()
     
-    home_position = [1.5, 0.0, 0.0]
-    while bot.position() != home_position:
+    while not (1.46 <= bot.position()[0] <= 1.49) or not(-0.2 <= bot.position()[1] <= 0):
         print(bot.position())
         if bot.line_following_sensors() == [1, 1]:  
             bot.stop()
@@ -137,13 +154,12 @@ def return_home():
     bot.deactivate_line_following_sensor()
 
 def main():
-    container = spawn()
-    load(0)
-    transfer(int(container[2][-1])) 
+    properties = spawn_n_load()
+    transfer(int(properties[2][-1])) 
     deposit() 
     return_home()
 
-main()
+# main()
 
 #---------------------------------------------------------------------------------
 # STUDENT CODE ENDS
