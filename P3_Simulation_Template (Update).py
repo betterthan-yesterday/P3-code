@@ -65,7 +65,7 @@ def spawn():
 #This function takes in the number of containers currently on the Qbot as parameter and loads the remaining container to the appropriate position
 def load(count):
     pick_up_coords = [0.644, 0.0, 0.273] 
-    drop_off_coords = [[0.02, -0.57, 0.590], [0.02, -0.50, 0.596], [0.02, -0.43, 0.596]] #The three drop off coordinates based on the number of containers on the Qbot
+    drop_off_coords = [[0.02, -0.59, 0.590], [0.02, -0.50, 0.596], [0.02, -0.43, 0.596]] #The three drop off coordinates based on the number of containers on the Qbot
 
     arm.move_arm(*pick_up_coords)
     time.sleep(2)
@@ -131,24 +131,38 @@ def transfer(bin_id):
     bot.activate_ultrasonic_sensor()
     last_direction = ''
     current_bin = 0
+    iteration = 1
     #The while loop runs until the bot reaches the correct bin i.e. current_bin == bin_id
     while current_bin != bin_id:
+        time.sleep(1)
         last_direction = follow_line(last_direction)
-        current_bin_reading = bot.read_color_sensor()[0]
-        current_bin_distance = bot.read_ultrasonic_sensor()
+        print(iteration)
+        try:
+            current_bin_reading = bot.read_color_sensor()[0]
+            print('Bin color reading:', current_bin_reading)
+        except:
+            time.sleep(0.1)
+            continue
+        try:
+            current_bin_distance = bot.read_ultrasonic_sensor()
+            print('Ultrasonic sensor distance reading:', current_bin_distance)
+        except:
+            time.sleep(0.1)
+            continue
         #Color readings are only taken for objects within 0.1 m of the Qbot so that it does mistake another coloured object for a bin
-        if current_bin_distance < 0.3:
+        if current_bin_distance != None and current_bin_distance < 0.3:
             #bin id of the bin near the Qbot is determined through the colour of the bin
-            if current_bin_reading == [1,0,0]: 
+            if current_bin_reading[0] == 1: 
                 current_bin = 1 
-            elif current_bin_reading == [0,1,0]: 
+            elif current_bin_reading[1] == 1: 
                 current_bin = 2 
-            elif current_bin_reading == [0,0,1]: 
+            elif current_bin_reading[2] === 1: 
                 current_bin = 3 
             elif current_bin_reading == [0,0,0]: 
                 current_bin = 4
+        iteration += 1
                 
-    bot.forward_time(2)
+    bot.forward_time(0.5)
     bot.stop() 
     bot.deactivate_color_sensor() 
     bot.deactivate_ultrasonic_sensor() 
@@ -156,9 +170,12 @@ def transfer(bin_id):
 #This function user the stepper motor to deposit the containers once the Qbot has reached the correct bin 
 def deposit():
     bot.activate_stepper_motor()
-    bot.rotate_hopper(50)
+    for i in range(5):
+        bot.rotate_hopper(10 + 10*i)
+        time.sleep(1)
     bot.deactivate_stepper_motor()
 
+    
 def return_home():
     bot.activate_line_following_sensor()
     last_direction = ''
