@@ -64,9 +64,8 @@ def spawn():
 
 #This function takes in the number of containers currently on the Qbot as parameter and loads the remaining container to the appropriate position
 def load(count):
-    bot_position = bot.position()
     pick_up_coords = [0.644, 0.0, 0.273] 
-    drop_off_coords = [[0.02, -0.57, 0.596], [0.02, -0.50, 0.596], [0.02, -0.43, 0.596]] #The three drop off coordinates based on the number of containers on the Qbot
+    drop_off_coords = [[0.02, -0.57, 0.590], [0.02, -0.50, 0.596], [0.02, -0.43, 0.596]] #The three drop off coordinates based on the number of containers on the Qbot
 
     arm.move_arm(*pick_up_coords)
     time.sleep(2)
@@ -103,6 +102,7 @@ def spawn_n_load(count, container_on_table):
     
     return main_container, new_container
 
+#This function has main task of following the yellow line and returns the last direction the yellow line was in i.e. either to the left or right of the qbot
 def follow_line(last_direction):
     if bot.line_following_sensors() == [1, 1]:  
         bot.stop()
@@ -137,7 +137,7 @@ def transfer(bin_id):
         current_bin_reading = bot.read_color_sensor()[0]
         current_bin_distance = bot.read_ultrasonic_sensor()
         #Color readings are only taken for objects within 0.1 m of the Qbot so that it does mistake another coloured object for a bin
-        if current_bin_distance < 0.1:
+        if current_bin_distance < 0.3:
             #bin id of the bin near the Qbot is determined through the colour of the bin
             if current_bin_reading == [1,0,0]: 
                 current_bin = 1 
@@ -156,9 +156,7 @@ def transfer(bin_id):
 #This function user the stepper motor to deposit the containers once the Qbot has reached the correct bin 
 def deposit():
     bot.activate_stepper_motor()
-    for i in range(5):
-        bot.rotate_hopper(10 + 10*i)
-        time.sleep(1)
+    bot.rotate_hopper(50)
     bot.deactivate_stepper_motor()
 
 def return_home():
