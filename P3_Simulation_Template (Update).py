@@ -13,19 +13,19 @@ bot_camera_angle = -21.5
 # Configuration for the colors for the bins and the lines leading to those bins.
 # Note: The line leading up to the bin will be the same color as the bin 
 
-bin1_offset = 0.15 # offset in meters
+bin1_offset = 0.20 # offset in meters
 bin1_color = [1,0,0] # e.g. [1,0,0] for red
 bin1_metallic = False
 
-bin2_offset = 0.15
+bin2_offset = 0.20
 bin2_color = [0,1,0]
 bin2_metallic = False
 
-bin3_offset = 0.15
+bin3_offset = 0.20
 bin3_color = [0,0,1]
 bin3_metallic = False
 
-bin4_offset = 0.15
+bin4_offset = 0.20
 bin4_color = [0,0,0]
 bin4_metallic = False
 #--------------------------------------------------------------------------------
@@ -55,16 +55,18 @@ else:
 import random
 import time
 
+#This function spawns a container onto the servo table
 def spawn(): 
     id_list = [1,2,3,4,5,6] 
     random.shuffle(id_list)
-
     container_attributes = table.dispense_container(id_list[0], True) 
     return container_attributes
 
+#This function takes in the number of containers currently on the Qbot as parameter and loads the remaining container to the appropriate position
 def load(count):
+    bot_position = bot.position()
     pick_up_coords = [0.644, 0.0, 0.273] 
-    drop_off_coords = [[0.02, -0.57, 0.596], [0.02, -0.50, 0.596], [0.02, -0.43, 0.596]]
+    drop_off_coords = [[0.02, -0.57, 0.596], [0.02, -0.50, 0.596], [0.02, -0.43, 0.596]] #The three drop off coordinates based on the number of containers on the Qbot
 
     arm.move_arm(*pick_up_coords)
     time.sleep(2)
@@ -76,11 +78,15 @@ def load(count):
     time.sleep(2)
     arm.home()
 
-def spawn_n_load():
-    count = 0
+'''This function combines the spawn() and load() function to create an integrated system that loads the appropriate type
+and number of containers onto the Qbot based on the loading criteria'''
+def spawn_n_load(count, container_on_table):
     weight = 0
     main_container = spawn()
-    
+    if container_on_table != None and count > 0:
+        new_container = main_container
+        main_container = container_on_table 
+        weight += container_on_table[1]
     while True:
         if count == 0:
             load(count)
@@ -95,30 +101,44 @@ def spawn_n_load():
         count += 1
         new_container = spawn()
     
-    return main_container
+    return main_container, new_container
+
+def follow_line(last_direction):
+    if bot.line_following_sensors() == [1, 1]:  
+        bot.stop()
+        bot.set_wheel_speed([0.05, 0.05])
+    elif bot.line_following_sensors() == [0, 1]:
+        bot.stop()
+        bot.set_wheel_speed([0.03, 0.01])
+        last_direction = 'r'
+    elif bot.line_following_sensors() == [1, 0]:
+        bot.stop()
+        bot.set_wheel_speed ([0.01, 0.03])
+        last_direction = 'l'
+    else:
+        if last_direction == 'l':
+            while bot.line_following_sensors() != [1,1] and bot.line_following_sensors() != [1,0]:
+                bot.set_wheel_speed([0.01, 0.03])
+        else:
+            while bot.line_following_sensors() != [1,1] and bot.line_following_sensors() != [0,1]:
+                bot.set_wheel_speed([0.03, 0.01])
+    return last_direction
+        
 
 def transfer(bin_id):  
     bot.activate_line_following_sensor() 
     bot.activate_color_sensor() 
-    bot.activate_ultrasonic_sensor() 
-  
+    bot.activate_ultrasonic_sensor()
+    last_direction = ''
     current_bin = 0
-    line_lost = False  
-    while current_bin != bin_id:  
-
-        if bot.line_following_sensors() == [1, 1]:  
-            bot.stop()
-            bot.set_wheel_speed([0.05,0.05])  
-        elif bot.line_following_sensors() == [0, 1]:
-            bot.stop()
-            bot.set_wheel_speed([0.03, 0.01])
-        elif bot.line_following_sensors() == [1, 0]:
-            bot.stop()
-            bot.set_wheel_speed ([0.01, 0.03]) 
-
+    #The while loop runs until the bot reaches the correct bin i.e. current_bin == bin_id
+    while current_bin != bin_id:
+        last_direction = follow_line(last_direction)
         current_bin_reading = bot.read_color_sensor()[0]
         current_bin_distance = bot.read_ultrasonic_sensor()
-        if current_bin_distance < 0.1: 
+        #Color readings are only taken for objects within 0.1 m of the Qbot so that it does mistake another coloured object for a bin
+        if current_bin_distance < 0.1:
+            #bin id of the bin near the Qbot is determined through the colour of the bin
             if current_bin_reading == [1,0,0]: 
                 current_bin = 1 
             elif current_bin_reading == [0,1,0]: 
@@ -133,36 +153,44 @@ def transfer(bin_id):
     bot.deactivate_color_sensor() 
     bot.deactivate_ultrasonic_sensor() 
 
+#This function user the stepper motor to deposit the containers once the Qbot has reached the correct bin 
 def deposit():
     bot.activate_stepper_motor()
-    bot.rotate_hopper(55)
-    time.sleep(2)
+    for i in range(5):
+        bot.rotate_hopper(10 + 10*i)
+        time.sleep(1)
     bot.deactivate_stepper_motor()
 
 def return_home():
     bot.activate_line_following_sensor()
-    
+    last_direction = ''
+    #The while loop keeps running until the bot reaches its home position whithin an acceptable uncertainty of coordinates
     while not (1.465 <= bot.position()[0] <= 1.49) or not(-0.2 <= bot.position()[1] <= 0.2):
-        if bot.line_following_sensors() == [1, 1]:  
-            bot.stop()
-            bot.set_wheel_speed([0.05,0.05])  
-        elif bot.line_following_sensors() == [0, 1]:
-            bot.stop()
-            bot.set_wheel_speed([0.03, 0.01])
-        elif bot.line_following_sensors() == [1, 0]:
-            bot.stop()
-            bot.set_wheel_speed ([0.01, 0.03]) 
+       last_direction = follow_line(last_direction)
 
     bot.stop()
-    bot.rotate(-5)
+    bot.rotate(-5) #Minor adjustment in bot position to make sure the contianer loaded next does not fall
     time.sleep(1)
     bot.deactivate_line_following_sensor()
 
 def main():
-    properties = spawn_n_load()
-    transfer(int(properties[2][-1])) 
-    deposit() 
-    return_home()
+    user_input = 'y'
+    servo_table_empty = True
+    container_count = 0
+    iteration = 0
+    #The program runs until the user decided to quit
+    while user_input == 'y':
+        if iteration == 0:
+            properties, container_on_table = spawn_n_load(0, None) #The properties of the container type currently loaded on the Qbot and the container left on the servo table are saved for later use
+        else:
+            load(0)
+            properties, container_on_table = spawn_n_load(1, container_on_table)
+        transfer(int(properties[2][-1]))#the transfer function is called with the bin_id passed along as an integer 
+        deposit() 
+        return_home()
+        user_input = input('Do you wish to run another iteration?(y/n)')#Ask the user if they wish to continue
+        iteration = 1
+    print('Thank you for recycling')
 
 main()
 
