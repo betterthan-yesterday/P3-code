@@ -59,7 +59,7 @@ def spawn():
     id_list = [1,2,3,4,5,6] 
     random.shuffle(id_list)
 
-    container_attributes = table.dispense_container(3, True) 
+    container_attributes = table.dispense_container(id_list[0], True) 
     return container_attributes
 
 def load(count):
