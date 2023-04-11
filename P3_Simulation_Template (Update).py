@@ -59,7 +59,7 @@ def spawn():
     id_list = [1,2,3,4,5,6] 
     random.shuffle(id_list)
 
-    container_attributes = table.dispense_container(2, True) 
+    container_attributes = table.dispense_container(3, True) 
     return container_attributes
 
 def load(count):
@@ -80,12 +80,15 @@ def spawn_n_load():
     count = 0
     weight = 0
     main_container = spawn()
+    
     while True:
         if count == 0:
             load(count)
+            weight += main_container[1]
         else:
             if main_container[2] == new_container[2] and count < 3 and weight <=90:
                 load(count)
+                weight += new_container[1]
             else:
                 break
             
@@ -124,6 +127,7 @@ def transfer(bin_id):
                 current_bin = 3 
             elif current_bin_reading == [0,0,0]: 
                 current_bin = 4
+                
     bot.forward_time(2)
     bot.stop() 
     bot.deactivate_color_sensor() 
@@ -138,8 +142,7 @@ def deposit():
 def return_home():
     bot.activate_line_following_sensor()
     
-    while not (1.46 <= bot.position()[0] <= 1.49) or not(-0.2 <= bot.position()[1] <= 0):
-        print(bot.position())
+    while not (1.465 <= bot.position()[0] <= 1.49) or not(-0.2 <= bot.position()[1] <= 0.2):
         if bot.line_following_sensors() == [1, 1]:  
             bot.stop()
             bot.set_wheel_speed([0.05,0.05])  
@@ -151,6 +154,8 @@ def return_home():
             bot.set_wheel_speed ([0.01, 0.03]) 
 
     bot.stop()
+    bot.rotate(-5)
+    time.sleep(1)
     bot.deactivate_line_following_sensor()
 
 def main():
